@@ -83,7 +83,7 @@ print(f'Test results - Loss: {test_results[0]} - Accuracy: {test_results[1]}%')
 print("Model Train and Evaluate Time: "+ str(time.time()-start_time))
 
 # Load Test Data Set
-MLPtestData = pd.read_csv("testData.csv", header = None)
+MLPtestData = pd.read_csv(data_dir + "testData.csv", header = None)
 min_max_scaler = preprocessing.MinMaxScaler()
 testData_Norm = pd.DataFrame(min_max_scaler.fit_transform(MLPtestData.T)).T
 
