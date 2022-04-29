@@ -15,6 +15,7 @@ from tensorflow.keras.utils import to_categorical
 from keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 import time
 import matplotlib.pyplot as plt
 import logging
@@ -27,9 +28,11 @@ start_time = time.time()
 '''
 Configuration options
 '''
-debug_level = logging.DEBUG     # Logging level, DEBUG, INFO, WARNING, etc.
+debug_level = logging.INFO     # Logging level, DEBUG, INFO, WARNING, etc.
 feature_vector_length = 512
 num_classes = 20
+save_model = True
+model_name = "convNet2"
 
 full_run = True # Whether or not to train on the full dataset or a subset
 num_rows = 1000000 # Number of row for a partial training run, ignored is full_run is True
@@ -41,9 +44,9 @@ train_data_file = data_dir + "trainData.csv"
 train_truth_file = data_dir + "trainTruth.csv"
 
 # Evaluation options
-eval_challenge_data = True # Whether or not to evaluate the challenge dataset
+eval_challenge_data = False # Whether or not to evaluate the challenge dataset
 eval_data_file = data_dir + "testData.csv"
-eval_results_file = data_dir + "results\\MLP_FullTrain_0418.csv"
+eval_results_file = data_dir + "results\\MLP_FullTrain_0420.csv"
 
 # Model options
 validation_split = 0.30 # Percent of test data to use for the validation split in training 
@@ -58,7 +61,7 @@ model_params = {
     }
 fit_params = {
     'verbose': 1,
-    'callbacks': EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=3)
+    'callbacks': EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
     }
 
 eval_params = {
@@ -145,7 +148,12 @@ test_results = model.evaluate(X_test, y_test, **eval_params)
 logging.info(f'Test results - Loss: {test_results[0]} - Accuracy: {test_results[1]}%')
 logging.info("Model Evaluate Time: "+ str(time.time()-temp_time))
 
-
+'''
+Save the model
+'''
+if save_model:
+    model.save(data_dir + "\\saved_models\\" + model_name)
+    
 '''
 Evaluate the challenge test set data
 1. Load the challenge dataset
@@ -164,7 +172,7 @@ if eval_challenge_data:
     eval_data_norm = pd.DataFrame(min_max_scaler.fit_transform(eval_data.T)).T
     
     # Make Predictions
-    logging.info("Evaluating predictions.")
+    logging.info("Classifying challenge dataset.")
     prediction = model.predict(eval_data_norm)
     predict_classes = prediction.argmax(axis=-1) # Take the most probable class
     
@@ -173,7 +181,6 @@ if eval_challenge_data:
     pd.DataFrame(predict_classes).to_csv(eval_results_file, header = False, index = False)
     
     logging.info("Prediction and Write Time: "+ str(time.time()-temp_time))
-
 
 '''
 Plot some metrics for accuracy and loss
@@ -195,3 +202,13 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 plt.show()
     
+''' 
+Confusion Matrix
+'''
+test_predict =  model.predict(X_test)
+cm = confusion_matrix(y_test.argmax(axis=-1), test_predict.argmax(axis=-1),normalize='true')
+fig = plt.figure(dpi=160, figsize=(10,10))
+axs = plt.axes()
+disp = ConfusionMatrixDisplay(confusion_matrix = cm)
+disp.plot(cmap=plt.cm.Blues, ax = axs, values_format='.2f')
+plt.show()
